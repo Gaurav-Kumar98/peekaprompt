@@ -548,17 +548,30 @@ function render() {
 let interactive = false;
 let overTab = false;
 let drag = null;
+let mouse = null;
+
+function hoverAt(target) {
+  const hit = !!target?.closest?.('.hit');
+  if (hit !== interactive) { interactive = hit; api.ignoreMouse(!hit); }
+  setOverTab(!!target?.closest?.('#tab'));
+}
 
 document.addEventListener('mousemove', (e) => {
+  mouse = { x: e.clientX, y: e.clientY };
   if (drag) {
     const dy = e.screenY - drag.startY;
     if (!drag.moved && Math.abs(dy) > 4) drag.moved = true;
     if (drag.moved) api.dragMove(dy);
     return;
   }
-  const hit = !!e.target.closest?.('.hit');
-  if (hit !== interactive) { interactive = hit; api.ignoreMouse(!hit); }
-  setOverTab(!!e.target.closest?.('#tab'));
+  hoverAt(e.target);
+});
+
+// The drawer can slide out from under a cursor that isn't moving; re-check
+// what's beneath it so the empty space doesn't keep swallowing clicks.
+$('#drawer').addEventListener('transitionend', (e) => {
+  if (e.target.id !== 'drawer' || drag || !mouse) return;
+  hoverAt(document.elementFromPoint(mouse.x, mouse.y));
 });
 
 const HELLOS = ['Boo!', 'Hi!', 'Psst!', 'Yo!', 'Hey!', 'Oh hi!'];
@@ -598,12 +611,13 @@ api.on('cursor', ({ x, y, wx, wy }) => {
   });
   // mousemove handles hovering; this only catches the cursor leaving the window entirely
   const inWindow = x >= wx && x < wx + window.innerWidth && y >= wy && y < wy + window.innerHeight;
-  if (!inWindow) setOverTab(false);
+  if (!inWindow) { mouse = null; setOverTab(false); }
 });
 
 api.on('state', (s) => {
   const wasOpen = ui.open;
   ui.open = s === 'open';
+  document.body.dataset.state = s;
   document.body.classList.toggle('is-open', ui.open);
   if (!ui.open && wasOpen && overTab) api.peek(true); // closed with the mouse still on Peeky
   if (ui.open && !wasOpen) {

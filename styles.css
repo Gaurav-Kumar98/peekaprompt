@@ -60,6 +60,22 @@ svg .dot { fill: currentColor; }
 }
 .badge-bubble .peeky { width: 22px; height: 26px; }
 
+/* ---------- the drawer (slides in and out; the window itself stays put) ---------- */
+
+#drawer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  transform: translateX(398px);   /* hidden: panel (380) + 18px of the tab tucked away */
+  transition: transform .26s cubic-bezier(.32, .72, 0, 1);
+}
+body[data-state="peek"] #drawer { transform: translateX(380px); transition-duration: .22s; }
+body[data-state="open"] #drawer { transform: none; transition-duration: .42s; }
+
+@media (prefers-reduced-motion: reduce) {
+  #drawer { transition-duration: .01s !important; }
+}
+
 /* ---------- the tab ---------- */
 
 #tab {

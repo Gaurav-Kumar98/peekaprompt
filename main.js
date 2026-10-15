@@ -7,14 +7,12 @@ const TAB_W = 58;            // the little handle that sticks out of the screen 
 const PANEL_W = 380;
 const WIN_W = TAB_W + PANEL_W;
 const MAX_H = 640;
-const PEEK = 40;             // how much of the handle shows while tucked away (most of Peeky)
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
 let win;
 let state = 'hidden';        // hidden | peek | open
 let pinned = false;
-let anim = null;
 let dragBaseY = 0;
 let dataFile, uiFile, uiPrefs;
 
@@ -84,12 +82,13 @@ function workArea() {
 
 function winHeight() { return Math.min(MAX_H, workArea().height - 16); }
 
-function xFor(s) {
+// The window itself never moves sideways: it sits at the fully-open spot and
+// the renderer slides the drawer with a CSS transform, which is composited on
+// the GPU and stays smooth (moving a transparent window with setBounds isn't).
+// Transparent areas are click-through, so the parked window doesn't get in the way.
+function winX() {
   const a = workArea();
-  const right = a.x + a.width;
-  if (s === 'open') return right - WIN_W;
-  if (s === 'peek') return right - TAB_W;
-  return right - PEEK;
+  return a.x + a.width - WIN_W;
 }
 
 function clampY(y) {
@@ -97,25 +96,14 @@ function clampY(y) {
   return Math.round(Math.max(a.y + 8, Math.min(y, a.y + a.height - winHeight() - 8)));
 }
 
-function place(x, y) {
-  win.setBounds({ x: Math.round(x), y, width: WIN_W, height: winHeight() });
+function place(y) {
+  win.setBounds({ x: winX(), y, width: WIN_W, height: winHeight() });
 }
 
 function slideTo(next) {
   if (!win || win.isDestroyed()) return;
   state = next;
   win.webContents.send('state', next);
-  const from = win.getBounds().x;
-  const to = xFor(next);
-  const dur = next === 'open' ? 260 : 180;
-  const start = Date.now();
-  clearInterval(anim);
-  anim = setInterval(() => {
-    const t = Math.min(1, (Date.now() - start) / dur);
-    const eased = 1 - Math.pow(1 - t, 3);
-    place(from + (to - from) * eased, win.getBounds().y);
-    if (t === 1) clearInterval(anim);
-  }, 10);
 }
 
 function open() { slideTo('open'); win.show(); win.focus(); }
@@ -127,7 +115,7 @@ function toggle() { state === 'open' ? hide() : open(); }
 function createWindow() {
   const a = workArea();
   win = new BrowserWindow({
-    x: xFor('hidden'), y: clampY(uiPrefs.y ?? a.y + 120), width: WIN_W, height: winHeight(),
+    x: winX(), y: clampY(uiPrefs.y ?? a.y + 120), width: WIN_W, height: winHeight(),
     frame: false, transparent: true, backgroundColor: '#00000000', hasShadow: false,
     resizable: false, maximizable: false, minimizable: false, fullscreenable: false,
     skipTaskbar: true, alwaysOnTop: true, show: false, title: 'PeekaPrompt',
@@ -155,7 +143,7 @@ ipcMain.on('peek', (_e, on) => {
 });
 ipcMain.on('ignore-mouse', (_e, on) => win.setIgnoreMouseEvents(!!on, { forward: true }));
 ipcMain.on('drag:start', () => { dragBaseY = win.getBounds().y; });
-ipcMain.on('drag:move', (_e, dy) => place(win.getBounds().x, clampY(dragBaseY + dy)));
+ipcMain.on('drag:move', (_e, dy) => place(clampY(dragBaseY + dy)));
 ipcMain.on('drag:end', () => { uiPrefs.y = win.getBounds().y; writeJSON(uiFile, uiPrefs); });
 ipcMain.on('pin', (_e, on) => { pinned = !!on; });
 ipcMain.handle('login:get', () => app.getLoginItemSettings(loginOpts()).openAtLogin);
@@ -169,7 +157,7 @@ app.whenReady().then(() => {
   createWindow();
   globalShortcut.register('Control+Alt+P', toggle);
 
-  const reflow = () => { if (win) place(xFor(state), clampY(win.getBounds().y)); };
+  const reflow = () => { if (win) place(clampY(win.getBounds().y)); };
   screen.on('display-metrics-changed', reflow);
   screen.on('display-added', reflow);
   screen.on('display-removed', reflow);
