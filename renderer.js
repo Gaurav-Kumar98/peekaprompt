@@ -78,7 +78,6 @@ function el(tag, attrs = {}, ...kids) {
     if (k === 'class') n.className = v;
     else if (k === 'text') n.textContent = v;
     else if (k === 'html') n.innerHTML = v; // static icon markup only
-
     else if (k === 'style') n.style.cssText = v;
     else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
     else n.setAttribute(k, v);
@@ -98,6 +97,14 @@ function persist() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => api.save(D), 250);
 }
+
+// Write any pending change right away (used before quitting/closing).
+function flushSave() {
+  if (!D) return;
+  clearTimeout(saveTimer);
+  api.save(D);
+}
+window.addEventListener('beforeunload', flushSave);
 
 function shake(node) {
   node.classList.remove('shake');
@@ -441,7 +448,7 @@ async function settingsDialog() {
     toggle('Tuck away after copying', D.settings.autoTuck, (v) => { D.settings.autoTuck = v; persist(); }),
     el('p', { class: 'muted small', text: 'Ctrl+Alt+P summons me from anywhere. Drag my tab to move me up or down.' }),
     el('div', { class: 'row end' },
-      el('button', { class: 'btn danger', text: 'Quit', onclick: () => api.quit() }),
+      el('button', { class: 'btn danger', text: 'Quit', onclick: () => { flushSave(); api.quit(); } }),
       el('span', { class: 'grow' }),
       el('button', { class: 'btn primary', text: 'Done', onclick: closeDialog })),
   );
@@ -551,7 +558,19 @@ document.addEventListener('mousemove', (e) => {
   }
   const hit = !!e.target.closest?.('.hit');
   if (hit !== interactive) { interactive = hit; api.ignoreMouse(!hit); }
+  setOverTab(!!e.target.closest?.('#tab'));
 });
+
+const HELLOS = ['Boo!', 'Hi!', 'Psst!', 'Yo!', 'Hey!', 'Oh hi!'];
+
+function setOverTab(over) {
+  if (over === overTab || drag) return;
+  overTab = over;
+  $('#tab').classList.toggle('hover', over);
+  if (over && !ui.open) $('#tabBubble').textContent = pick(HELLOS);
+  $('#tabBubble').classList.toggle('show', over && !ui.open);
+  if (!ui.open) api.peek(over);
+}
 
 $('#tab').addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
@@ -577,20 +596,16 @@ api.on('cursor', ({ x, y, wx, wy }) => {
     const m = Math.min(1, dist / 120) * 2.4;
     svg.querySelector('.pk-look').setAttribute('transform', `translate(${(dx / dist * m).toFixed(2)} ${(dy / dist * m).toFixed(2)})`);
   });
-  // slide out a little more when hovered
-  const t = $('#tab').getBoundingClientRect();
-  const over = x >= wx + t.left && x <= wx + t.right && y >= wy + t.top && y <= wy + t.bottom;
-  if (over !== overTab) {
-    overTab = over;
-    $('#tab').classList.toggle('hover', over);
-    if (!ui.open && !drag) api.peek(over);
-  }
+  // mousemove handles hovering; this only catches the cursor leaving the window entirely
+  const inWindow = x >= wx && x < wx + window.innerWidth && y >= wy && y < wy + window.innerHeight;
+  if (!inWindow) setOverTab(false);
 });
 
 api.on('state', (s) => {
   const wasOpen = ui.open;
   ui.open = s === 'open';
   document.body.classList.toggle('is-open', ui.open);
+  if (!ui.open && wasOpen && overTab) api.peek(true); // closed with the mouse still on Peeky
   if (ui.open && !wasOpen) {
     setQuip();
     renderStats();

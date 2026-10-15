@@ -3,11 +3,11 @@ const { app, BrowserWindow, ipcMain, screen, clipboard, globalShortcut } = requi
 const path = require('path');
 const fs = require('fs');
 
-const TAB_W = 46;            // the little handle that sticks out of the screen edge
+const TAB_W = 58;            // the little handle that sticks out of the screen edge
 const PANEL_W = 380;
 const WIN_W = TAB_W + PANEL_W;
 const MAX_H = 640;
-const PEEK = 24;             // how much of the handle shows while tucked away
+const PEEK = 40;             // how much of the handle shows while tucked away (most of Peeky)
 
 if (!app.requestSingleInstanceLock()) app.quit();
 

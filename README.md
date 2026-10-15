@@ -18,7 +18,7 @@ I kept rewriting the same prompts from scratch, or digging through old chats to 
 
 ## Features
 
-- **Hides at the screen edge.** Only half of Peeky shows. Hover and it peeks out further; click and the drawer slides open.
+- **Hides at the screen edge.** Peeky peeks out from the edge. Hover and it pops out to say hi; click and the drawer slides open.
 - **One-click copy.** Click a card to copy it, and the drawer tucks itself away.
 - **Categories.** Each one gets its own emoji and colour. Right-click a category to edit it.
 - **Search and copy.** Type to filter, then press `Enter` to copy the top match.
