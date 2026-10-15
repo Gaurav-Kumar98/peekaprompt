@@ -25,7 +25,13 @@ function readJSON(file, fallback) {
 function writeJSON(file, obj) {
   const tmp = file + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
-  fs.renameSync(tmp, file);
+  try {
+    fs.renameSync(tmp, file);
+  } catch {
+    // Windows refuses the rename while something (antivirus, indexer) has the file open.
+    fs.copyFileSync(tmp, file);
+    fs.rmSync(tmp, { force: true });
+  }
 }
 
 function starterData() {
@@ -58,10 +64,19 @@ function starterData() {
   };
 }
 
+// The sample prompts are only for a true first run, when there's no data file
+// yet. Once you have a stash, always load it: if the file can't be read, try the
+// last write's temp copy, and failing that start empty and set the unreadable
+// file aside, so a later save can never replace your prompts with the samples.
 function loadData() {
-  const saved = readJSON(dataFile, null);
   const fresh = starterData();
-  if (!saved) return fresh;
+  const tmp = dataFile + '.tmp';
+  if (!fs.existsSync(dataFile) && !fs.existsSync(tmp)) return fresh;
+  let saved = readJSON(dataFile, null) ?? readJSON(tmp, null);
+  if (!saved || typeof saved !== 'object') {
+    try { fs.copyFileSync(dataFile, dataFile.replace(/\.json$/, `.unreadable-${Date.now()}.json`)); } catch {}
+    saved = {};
+  }
   return {
     categories: saved.categories ?? fresh.categories,
     prompts: saved.prompts ?? [],
