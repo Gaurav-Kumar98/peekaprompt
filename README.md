@@ -6,6 +6,8 @@ Peeky the ghost peeks out from the right edge of your desktop. Click it and a dr
 
 No accounts, no cloud, no subscriptions. It's just your prompts, on your machine, one click away.
 
+📖 **Read the story behind it:** [I built a free, open-source AI prompt manager that hides on the edge of my screen](https://medium.com/@gk0415439/free-open-source-ai-prompt-manager-peekaprompt-2eb7418771c8) (Medium)
+
 <p align="center">
   <img src="docs/screenshot-copy.png" width="300" alt="PeekaPrompt drawer with prompt cards and a 'Copied!' toast">
   <img src="docs/screenshot-new.png" width="300" alt="Writing a new prompt in PeekaPrompt">
