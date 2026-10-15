@@ -1,0 +1,27 @@
+{
+  "name": "peekaprompt",
+  "version": "1.0.0",
+  "description": "A cheeky little side-drawer that stashes your favourite AI prompts. Peeky the ghost hides on your screen edge until you need it.",
+  "main": "main.js",
+  "private": true,
+  "license": "MIT",
+  "author": "Gaurav Kumar",
+  "homepage": "https://github.com/Gaurav-Kumar98/peekaprompt#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gaurav-Kumar98/peekaprompt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Gaurav-Kumar98/peekaprompt/issues"
+  },
+  "keywords": ["prompts", "prompt-manager", "electron", "desktop", "ai", "chatgpt", "claude", "productivity"],
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^44.7.2"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0"
+  }
+}
